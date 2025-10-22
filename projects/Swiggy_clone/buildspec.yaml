@@ -52,10 +52,12 @@ phases:
       - export IMAGE_URI="$IMAGE_REPO:$IMAGE_TAG"
 
       # 1. Docker Login (uses credentials from Parameter Store)
-      - set -x
+      - echo "Docker Login to $DOCKER_REGISTRY_URL with user $DOCKER_REGISTRY_USERNAME"
       - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin "$DOCKER_REGISTRY_URL"
-      - set +x
       
+      # FIX: Run docker build from the correct directory where Dockerfile resides.
+      - cd projects/Swiggy_clone
+
       # 2. Docker Build (Tagging with the dynamic commit hash)
       - docker build -t "$IMAGE_URI" .
       
@@ -65,6 +67,9 @@ phases:
       # 4. Docker Tag and Push (Also tag with :latest for easy reference)
       - docker tag "$IMAGE_URI" "$IMAGE_REPO:latest"
       - docker push "$IMAGE_REPO:latest"
+      
+      # FIX: Return to the root directory for post_build artifacts.
+      - cd ../..
 
   # --- POST-BUILD PHASE: FINAL STEPS ---
   post_build:
@@ -88,7 +93,7 @@ phases:
       # - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://3.110.187.226:9000 -Dsonar.login=$SONAR_TOKEN
       
       # 4. SES Email Notification (Restored to madithati123@gmail.com and ap-south-1)
-      # - aws ses send-email --from "no-reply@gmail.com" --to "abisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "ap-south-1"
+      - aws ses send-email --from "no-reply@gmail.com" --to "abisecops@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "ap-south-1"
 
 # --- ARTIFACTS ---
 artifacts:

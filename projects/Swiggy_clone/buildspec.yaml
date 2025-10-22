@@ -70,20 +70,10 @@ phases:
 
       # 3. SonarQube Analysis
       - echo "Running SonarQube analysis result with explicit token and host URL."
-      # Uses the new host URL and the SONAR_TOKEN environment variable (loaded from Parameter Store).
-      - sonar-scanner \
-        -Dsonar.projectKey=swiggy \
-        -Dsonar.sources=. \
-        -Dsonar.host.url=http://3.110.187.226:9000 \
-        -Dsonar.login=$SONAR_TOKEN
+      - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://3.110.187.226:9000 -Dsonar.login=$SONAR_TOKEN
       
-      # 4. SES Email Notification
-      - aws ses send-email \
-        --from "noreply@gmail.com" \
-        --to "pingabisec@gmail.com" \
-        --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" \
-        --text "Build status: $CODEBUILD_BUILD_STATUS" \
-        --region "us-east-1" # Update with your preferred AWS region
+      # 4. SES Email Notification (Condensed to one line to avoid multi-line YAML parsing issues)
+      - aws ses send-email --from "noreply@gmail.com" --to "pingabisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "us-east-1"
 
 # --- ARTIFACTS ---
 artifacts:

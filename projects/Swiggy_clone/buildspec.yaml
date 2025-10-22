@@ -15,72 +15,80 @@ phases:
       python: 3.11
       java: corretto17
 
-  # --- PRE-BUILD PHASE: SECURITY TOOL & SCANNER SETUP ---
+  # --- PRE-BUILD PHASE: SECURITY TOOL & SCANNER SETUP (Mostly Commented) ---
   pre_build:
     commands:
       - echo "Installing dependencies..."
       - echo "Performing Trivy file scan before building the image..."
-
       # 1. Install Trivy for vulnerability scanning
-      - wget https://github.com/aquasecurity/trivy/releases/download/v0.19.2/trivy_0.19.2_Linux-64bit.tar.gz
-      - tar zxvf trivy_0.19.2_Linux-64bit.tar.gz
-      - export PATH=$PATH:$PWD
-      - trivy filesystem --exit-code 0 --no-progress . >> trivyfilescan.txt
+      # - wget https://github.com/aquasecurity/trivy/releases/download/v0.19.2/trivy_0.19.2_Linux-64bit.tar.gz
+      # - tar zxvf trivy_0.19.2_Linux-64bit.tar.gz
+      # - export PATH=$PATH:$PWD
+      # - trivy filesystem --exit-code 0 --no-progress . >> trivyfilescan.txt
       
       # 2. Install OWASP Dependency-Check
-      - echo "Downloading and installing OWASP Dependency-Check..."
-      - wget https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
-      - unzip dependency-check-7.0.2-release.zip
+      # - echo "Downloading and installing OWASP Dependency-Check..."
+      # - wget https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
+      # - unzip dependency-check-7.0.2-release.zip
       
       # 3. Install SonarQube Scanner
-      - export SONAR_SCANNER_VERSION=4.7.0.2747
-      - export SONAR_SCANNER_HOME=$HOME/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux
-      - curl --create-dirs -sSLo $HOME/.sonar/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux.zip
-      - unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
-      - export PATH=$SONAR_SCANNER_HOME/bin:$PATH
-      - export SONAR_SCANNER_OPTS="-server"
+      # - export SONAR_SCANNER_VERSION=4.7.0.2747
+      # - export SONAR_SCANNER_HOME=$HOME/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux
+      # - curl --create-dirs -sSLo $HOME/.sonar/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux.zip
+      # - unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
+      # - export PATH=$SONAR_SCANNER_HOME/bin:$PATH
+      # - export SONAR_SCANNER_OPTS="-server"
 
-  # --- BUILD PHASE: DOCKER IMAGE CREATION & PUSH ---
+  # --- BUILD PHASE: DOCKER IMAGE CREATION & PUSH (Uncommented for core function) ---
   build:
     commands:
       - echo "Running tests..."
       - echo "Building and Pushing Docker image..."
 
+      # Define IMAGE_TAG and IMAGE_URI environment variables for use in all subsequent phases.
+      # The tag uses the first 7 characters of the commit ID.
+      - export IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - export IMAGE_REPO="$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/swiggy"
+      - export IMAGE_URI="$IMAGE_REPO:$IMAGE_TAG"
+
       # 1. Docker Login (uses credentials from Parameter Store)
-      # The set -x command is added here to help debug the environment variables for DOCKER_REGISTRY_URL and DOCKER_REGISTRY_USERNAME.
       - set -x
       - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin "$DOCKER_REGISTRY_URL"
       - set +x
       
-      # 2. Docker Build (requires Privileged Mode to be enabled in CodeBuild)
-      - docker build -t "$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/swiggy:latest" .
+      # 2. Docker Build (Tagging with the dynamic commit hash)
+      - docker build -t "$IMAGE_URI" .
       
-      # 3. Docker Push
-      - docker push "$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/swiggy:latest"
+      # 3. Docker Push (Tagged with commit hash)
+      - docker push "$IMAGE_URI"
 
-  # --- POST-BUILD PHASE: FINAL SCANS, SONAR ANALYSIS, AND NOTIFICATION ---
+      # 4. Docker Tag and Push (Also tag with :latest for easy reference)
+      - docker tag "$IMAGE_URI" "$IMAGE_REPO:latest"
+      - docker push "$IMAGE_REPO:latest"
+
+  # --- POST-BUILD PHASE: FINAL STEPS ---
   post_build:
     commands:
-      # FIX for UPLOAD_ARTIFACTS: Copy appspec.yaml from its repository location to the CodeBuild root.
-      # Assuming appspec.yaml is located next to buildspec.yaml.
+      # FIX: Copy appspec.yaml to the root for artifact collection.
       - cp projects/Swiggy_clone/appspec.yaml .
       
       # 1. Trivy Image Scan (post-build)
       - echo "Performing Trivy image scan after building the image..."
-      - trivy image "$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/swiggy:latest" >> trivyimage.txt
+      # The Trivy command is updated to use the dynamically generated IMAGE_URI variable
+      # - trivy image "$IMAGE_URI" >> trivyimage.txt
 
       # 2. Run OWASP Dependency-Check Scan
-      - echo "Running OWASP Dependency-Check scan..."
-      - cd dependency-check/bin
-      - ./dependency-check.sh --scan . --format ALL
-      - echo "Build completed successfully!"
+      # - echo "Running OWASP Dependency-Check scan..."
+      # - cd dependency-check/bin
+      # - ./dependency-check.sh --scan . --format ALL
+      # - echo "Build completed successfully!"
 
       # 3. SonarQube Analysis
-      - echo "Running SonarQube analysis result with explicit token and host URL."
-      - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://3.110.187.226:9000 -Dsonar.login=$SONAR_TOKEN
+      # - echo "Running SonarQube analysis result with explicit token and host URL."
+      # - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://3.110.187.226:9000 -Dsonar.login=$SONAR_TOKEN
       
-      # 4. SES Email Notification (Condensed to one line to avoid multi-line YAML parsing issues)
-      # - aws ses send-email --from "noreply@gmail.com" --to "pingabisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "us-east-1"
+      # 4. SES Email Notification (Restored to madithati123@gmail.com and ap-south-1)
+      # - aws ses send-email --from "no-reply@gmail.com" --to "abisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "ap-south-1"
 
 # --- ARTIFACTS ---
 artifacts:

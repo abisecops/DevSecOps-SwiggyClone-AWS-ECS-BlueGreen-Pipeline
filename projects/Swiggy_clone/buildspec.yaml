@@ -28,13 +28,13 @@ phases:
       # Java is already installed and configured in the 'install' phase.
 
       - echo "Performing Trivy file scan before building the image..."
-      # 1. Install Trivy for vulnerability scanning
-      # - wget https://github.com/aquasecurity/trivy/releases/download/v0.19.2/trivy_0.19.2_Linux-64bit.tar.gz
-      # - tar zxvf trivy_0.19.2_Linux-64bit.tar.gz
-      # - export PATH=$PATH:$PWD
-      # - trivy filesystem --exit-code 0 --no-progress . >> trivyfilescan.txt
+      # 1. Install Trivy for vulnerability scanning (ACTIVATED)
+      - wget https://github.com/aquasecurity/trivy/releases/download/v0.19.2/trivy_0.19.2_Linux-64bit.tar.gz
+      - tar zxvf trivy_0.19.2_Linux-64bit.tar.gz
+      - export PATH=$PATH:$PWD
+      - trivy filesystem --exit-code 0 --no-progress . >> trivyfilescan.txt
       
-      # 2. Install OWASP Dependency-Check
+      # 2. Install OWASP Dependency-Check (STILL COMMENTED OUT - requires more steps)
       # - echo "Downloading and installing OWASP Dependency-Check..."
       # - wget https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
       # - unzip dependency-check-7.0.2-release.zip
@@ -51,6 +51,17 @@ phases:
   # --- BUILD PHASE: DOCKER IMAGE CREATION & PUSH (Uncommented for core function) ---
   build:
     commands:
+      # --- FIX 2: Start Docker Daemon (Required for Docker operations in CodeBuild) ---
+      # This addresses the 'exit status 1' error during docker login.
+      # NOTE: The CodeBuild project MUST also have 'Privileged' flag set to true in the console/CFN template.
+      - echo "Starting Docker daemon..."
+      # Start the daemon in the background and redirect output
+      - nohup dockerd > /tmp/dockerd.log 2>&1 &
+      # Wait up to 15 seconds until the daemon is responsive
+      - timeout 15 sh -c 'until docker info; do echo -n "."; sleep 1; done'
+      - echo "Docker daemon status confirmed."
+      # --------------------------------------------------------------------------
+      
       - echo "Running tests..."
       - echo "Building and Pushing Docker image..."
 
@@ -86,12 +97,12 @@ phases:
       # FIX: Copy appspec.yaml to the root for artifact collection.
       - cp projects/Swiggy_clone/appspec.yaml .
       
-      # 1. Trivy Image Scan (post-build)
+      # 1. Trivy Image Scan (post-build) (ACTIVATED)
       - echo "Performing Trivy image scan after building the image..."
       # The Trivy command is updated to use the dynamically generated IMAGE_URI variable
-      # - trivy image "$IMAGE_URI" >> trivyimage.txt
+      - trivy image "$IMAGE_URI" >> trivyimage.txt
 
-      # 2. Run OWASP Dependency-Check Scan
+      # 2. Run OWASP Dependency-Check Scan (STILL COMMENTED OUT)
       # - echo "Running OWASP Dependency-Check scan..."
       # - cd dependency-check/bin
       # - ./dependency-check.sh --scan . --format ALL
@@ -101,8 +112,8 @@ phases:
       - echo "Running SonarQube analysis..."
       - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=projects/Swiggy_clone -Dsonar.host.url=http://3.110.187.226:9000 -Dsonar.login=$SONAR_TOKEN
       
-      # 4. SES Email Notification (COMMENTED OUT)
-      # - aws ses send-email --from "no-reply@gmail.com" --to "abisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "ap-south-1"
+      # 4. SES Email Notification (COMMENTED OUT - Updated emails)
+      # - aws ses send-email --from "no-reply@abisec.xyz" --to "abisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "ap-south-1"
 
 # --- ARTIFACTS ---
 artifacts:

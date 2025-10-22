@@ -111,8 +111,96 @@ This is how **CodeDeploy** executes the zero-downtime switch:
   * **Access SonarQube** via your browser: `http://<public_ip>:9000`
   * **Default Credentials:** `Username: admin`, `Password: admin`
     <img width="1256" height="476" alt="image" src="https://github.com/user-attachments/assets/2e98e656-acce-43dd-a73b-66df2d6b25d6" />
-  * Change password old to new: 
-  <img width="709" height="721" alt="image" src="https://github.com/user-attachments/assets/1e5b9225-fc7e-4f86-9def-dcc105294e78" />
-
-
   
+
+
+### 2.1 SonarQube Initial Configuration
+
+1.  **Log in** to SonarQube (`<public_ip>:9000`) with default credentials (`admin`/`admin`).
+    <img width="1256" height="476" alt="image" src="https://github.com/user-attachments/assets/2e98e656-acce-43dd-a73b-66df2d6b25d6" />
+3.  **Create a custom password** when prompted.
+    <img width="709" height="721" alt="image" src="https://github.com/user-attachments/assets/1e5b9225-fc7e-4f86-9def-dcc105294e78" />
+5.  Click **“manually”** (`<>`) to create a new project.
+   <img width="1478" height="744" alt="image" src="https://github.com/user-attachments/assets/b0d5018e-7af3-47d9-9b3f-c4a569fec93a" />
+
+7.  Click **“locally”**.
+    <img width="1460" height="769" alt="image" src="https://github.com/user-attachments/assets/31fb73b8-6a58-4a74-a001-143267efa2bf" />
+
+9.  **Provide a name** for your project.
+    
+11.  Click **“Set Up”**.
+   <img width="1386" height="628" alt="image" src="https://github.com/user-attachments/assets/18cacb89-ea2e-495a-8c68-3f186a37576c" />
+
+### 2.2 Generate Sonar Token
+
+1.  Click **“Generate”** to create a new token and **copy** it.
+<img width="1401" height="494" alt="image" src="https://github.com/user-attachments/assets/c1071bd1-56a9-4df5-b508-895565e5cec1" />
+
+3.  Under code, select **Other** and OS as **Linux**.
+<img width="1422" height="917" alt="image" src="https://github.com/user-attachments/assets/4e1a5fba-de79-477e-9f55-1f57667ca001" />
+
+### 2.3 Store Secrets in AWS Parameter Store
+
+1.  In the AWS Console, navigate to **Systems Manager** $\rightarrow$ **Parameter Store**.
+   <img width="1920" height="799" alt="image" src="https://github.com/user-attachments/assets/34850703-f314-4c15-a9f6-b37145da7493" />
+
+3.  Click **“Create parameter”**.
+   <img width="1918" height="868" alt="image" src="https://github.com/user-attachments/assets/c233c74b-8d5a-420d-bc1d-a76d1ed069cc" />
+
+4.  **Create the Sonar Token parameter:**
+      * **Name:** `/cicd/sonar/sonar-token`
+      * **Value:** `<The copied Sonar token>`
+        <img width="1896" height="923" alt="image" src="https://github.com/user-attachments/assets/89b93408-fa43-424e-bf65-4433cba46cf4" />
+
+5.  **Create parameters for Docker Credentials:**
+      * **Name:** `/cicd/docker-credentials/username`
+      * **Value:** `<Your Docker Hub Username>`
+      * **Name:** `/cicd/docker-credentials/password`
+      * **Value:** `<Your Docker Hub Password>`
+      * **Name:** `/cicd/docker-registry/url`
+      * **Value:** `docker.io` (or your registry URL, could be ECR, Harbor)
+        <img width="1920" height="586" alt="image" src="https://github.com/user-attachments/assets/cc7ebee3-5089-41a0-8686-6cdec6a35e9b" />
+
+## **Step 3: Create AWS CodeBuild Project**
+
+### 3.1 CodeBuild Project Creation
+
+1.  **Navigate** to AWS **CodeBuild** $\rightarrow$ **Create project**.
+   <img width="1920" height="783" alt="image" src="https://github.com/user-attachments/assets/f1a0549b-6a3d-4272-b266-a33d2ed5fe9b" />
+
+2.  **Provide a name** for the project.
+3.  Under **Source**, select **GitHub**.
+4.  Select **Connect using OAuth** and follow the GitHub login/permission prompts.
+<img width="1229" height="916" alt="image" src="https://github.com/user-attachments/assets/8c37a562-6d38-4d50-bc3b-a3e6b455ad8a" />
+
+5.  Under **GitHub repo**, select your **application repository**.
+<img width="644" height="406" alt="image" src="https://github.com/user-attachments/assets/9f8b989b-1dfe-45ea-99e0-274c556dff3f" />
+
+6.  Under **Environment**, leave defaults (e.g., Managed Image, Ubuntu).
+<img width="672" height="744" alt="image" src="https://github.com/user-attachments/assets/4c829fab-89d6-452f-9c1f-d8d6ec15b745" />
+
+7.  Under **Buildspec**, select **“Use a buildspec file”**.
+8.  **File Name:** Enter `buildspec.yaml`.
+<img width="753" height="385" alt="image" src="https://github.com/user-attachments/assets/797b5e42-9ed7-4ab7-a3ef-390083e4e7ec" />
+- project/swiggy-clone/buildspec.yaml
+
+9.  Under **Artifacts**, select **Amazon S3** and use an **already created S3 bucket**.
+<img width="798" height="782" alt="image" src="https://github.com/user-attachments/assets/b7a00eff-a121-403f-8142-2babf3c057be" />
+
+10. Click **“Update project”** (or **Create project** if starting fresh).
+<img width="755" height="468" alt="image" src="https://github.com/user-attachments/assets/8345df54-d709-4e91-b546-35cfcd8ff5a2" />
+
+
+### 3.2 Update IAM Role Permissions
+
+1.  **Navigate** to **IAM** $\rightarrow$ **Roles**.
+2.  Find and click on the **Service Role** created by CodeBuild (e.g., `codebuild-<project-name>-service-role`).
+3.  **Attach Policies** to grant necessary permissions:
+      * **`AmazonSSMFullAccess`** (To access the Sonar/Docker parameters in Systems Manager).
+      * **`AWSS3FullAccess`** (To upload build artifacts to S3).
+
+### 3.3 Start Build
+
+1.  In the CodeBuild project, click **“Start build”**.
+
+> **Note:** The `buildspec.yaml` file must be updated with your **Sonar URL** and **Project Key** before starting the build.

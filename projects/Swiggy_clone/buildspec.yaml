@@ -11,14 +11,24 @@ env:
 
 phases:
   install:
-    runtime-versions:
-      python: 3.11
-      java: corretto17
+    # --- FIX 1: Removed runtime-versions ---
+    # The COMMAND_EXECUTION_ERROR during install suggests the specified runtime (java: corretto17) 
+    # is not available on the CodeBuild image/architecture being used.
+    # We will install Java manually in the pre_build phase to ensure compatibility.
+    # runtime-versions:
+    #   java: corretto17 # REMOVED
 
-  # --- PRE-BUILD PHASE: SECURITY TOOL & SCANNER SETUP (Mostly Commented) ---
+  # --- PRE-BUILD PHASE: SECURITY TOOL & SCANNER SETUP (SonarQube Active) ---
   pre_build:
     commands:
       - echo "Installing dependencies..."
+
+      # --- FIX 2: Manually install Corretto 17 ---
+      # Assuming an Amazon Linux 2/3 base image (common in CodeBuild). This installs the required Java for SonarQube.
+      - echo "Manually installing Corretto 17 to avoid runtime error..."
+      - yum update -y
+      - yum install -y java-17-amazon-corretto-devel
+
       - echo "Performing Trivy file scan before building the image..."
       # 1. Install Trivy for vulnerability scanning
       # - wget https://github.com/aquasecurity/trivy/releases/download/v0.19.2/trivy_0.19.2_Linux-64bit.tar.gz
@@ -31,13 +41,14 @@ phases:
       # - wget https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
       # - unzip dependency-check-7.0.2-release.zip
       
-      # 3. Install SonarQube Scanner
-      # - export SONAR_SCANNER_VERSION=4.7.0.2747
-      # - export SONAR_SCANNER_HOME=$HOME/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux
-      # - curl --create-dirs -sSLo $HOME/.sonar/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux.zip
-      # - unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
-      # - export PATH=$SONAR_SCANNER_HOME/bin:$PATH
-      # - export SONAR_SCANNER_OPTS="-server"
+      # 3. Install SonarQube Scanner (ACTIVATED)
+      - echo "Setting up SonarQube Scanner..."
+      - export SONAR_SCANNER_VERSION=4.7.0.2747
+      - export SONAR_SCANNER_HOME=$HOME/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux
+      - curl --create-dirs -sSLo $HOME/.sonar/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux.zip
+      - unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
+      - export PATH=$SONAR_SCANNER_HOME/bin:$PATH
+      - export SONAR_SCANNER_OPTS="-server"
 
   # --- BUILD PHASE: DOCKER IMAGE CREATION & PUSH (Uncommented for core function) ---
   build:
@@ -71,7 +82,7 @@ phases:
       # FIX: Return to the root directory for post_build artifacts.
       - cd ../..
 
-  # --- POST-BUILD PHASE: FINAL STEPS ---
+  # --- POST-BUILD PHASE: FINAL STEPS (SonarQube Active) ---
   post_build:
     commands:
       # FIX: Copy appspec.yaml to the root for artifact collection.
@@ -88,12 +99,12 @@ phases:
       # - ./dependency-check.sh --scan . --format ALL
       # - echo "Build completed successfully!"
 
-      # 3. SonarQube Analysis
-      # - echo "Running SonarQube analysis result with explicit token and host URL."
-      # - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://3.110.187.226:9000 -Dsonar.login=$SONAR_TOKEN
+      # 3. SonarQube Analysis (ACTIVATED)
+      - echo "Running SonarQube analysis..."
+      - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=projects/Swiggy_clone -Dsonar.host.url=http://3.110.187.226:9000 -Dsonar.login=$SONAR_TOKEN
       
       # 4. SES Email Notification (Restored to madithati123@gmail.com and ap-south-1)
-      # - aws ses send-email --from "no-reply@gmail.com" --to "abisecops@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "ap-south-1"
+      # - aws ses send-email --from "noreply@gmail.com" --to "abisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "ap-south-1"
 
 # --- ARTIFACTS ---
 artifacts:

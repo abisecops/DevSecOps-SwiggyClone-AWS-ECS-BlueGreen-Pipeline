@@ -98,7 +98,7 @@ phases:
       - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=projects/Swiggy_clone -Dsonar.host.url=http://3.110.187.226:9000 -Dsonar.login=$SONAR_TOKEN
       
       # 4. SES Email Notification (Restored to madithati123@gmail.com and ap-south-1)
-      - aws ses send-email --from "noreply@gmail.com" --to "abisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "ap-south-1"
+      # - aws ses send-email --from "noreply@gmail.com" --to "abisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "ap-south-1"
 
 # --- ARTIFACTS ---
 artifacts:

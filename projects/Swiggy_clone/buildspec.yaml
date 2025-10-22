@@ -47,7 +47,10 @@ phases:
       - echo "Building and Pushing Docker image..."
 
       # 1. Docker Login (uses credentials from Parameter Store)
+      # The set -x command is added here to help debug the environment variables for DOCKER_REGISTRY_URL and DOCKER_REGISTRY_USERNAME.
+      - set -x
       - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin "$DOCKER_REGISTRY_URL"
+      - set +x
       
       # 2. Docker Build (requires Privileged Mode to be enabled in CodeBuild)
       - docker build -t "$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/swiggy:latest" .
@@ -58,6 +61,10 @@ phases:
   # --- POST-BUILD PHASE: FINAL SCANS, SONAR ANALYSIS, AND NOTIFICATION ---
   post_build:
     commands:
+      # FIX for UPLOAD_ARTIFACTS: Copy appspec.yaml from its repository location to the CodeBuild root.
+      # Assuming appspec.yaml is located next to buildspec.yaml.
+      - cp projects/Swiggy_clone/appspec.yaml .
+      
       # 1. Trivy Image Scan (post-build)
       - echo "Performing Trivy image scan after building the image..."
       - trivy image "$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/swiggy:latest" >> trivyimage.txt
@@ -72,11 +79,11 @@ phases:
       - echo "Running SonarQube analysis result with explicit token and host URL."
       - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://3.110.187.226:9000 -Dsonar.login=$SONAR_TOKEN
       
-      #  4. SES Email Notification (Condensed to one line to avoid multi-line YAML parsing issues)
+      # 4. SES Email Notification (Condensed to one line to avoid multi-line YAML parsing issues)
       # - aws ses send-email --from "noreply@gmail.com" --to "pingabisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "us-east-1"
 
 # --- ARTIFACTS ---
 artifacts:
-  # The appspec.yaml is needed for CodeDeploy's Blue/Green deployment
+  # The appspec.yaml is now copied to the root directory during the post_build phase.
   files:
     - appspec.yaml

@@ -11,17 +11,21 @@ env:
 
 phases:
   install:
-    # --- FIX: Moved manual Java install here to satisfy YAML validator ---
     commands:
-      - echo "Installing Java Corretto 17 manually..."
-      # Install the Java Runtime Environment (JRE) for SonarQube Scanner.
-      - yum update -y
-      - yum install -y java-17-amazon-corretto-jre
+      # --- FIX 1: Ubuntu-based Java Installation using apt-get ---
+      # This replaces the failed 'yum' install with the standard process for
+      # Debian/Ubuntu systems (apt-get), which is more reliable for runtimes.
+      - echo "Installing OpenJDK 17 on Ubuntu (for SonarQube Scanner)..."
+      - apt-get update -y
+      - apt-get install -y openjdk-17-jre
+      - java -version # Verify installation
 
   # --- PRE-BUILD PHASE: SECURITY TOOL & SCANNER SETUP (SonarQube Active) ---
   pre_build:
     commands:
-      - echo "Installing dependencies..."
+      - echo "Installing dependencies and setting up SonarQube Scanner..."
+      
+      # Java is already installed and configured in the 'install' phase.
 
       - echo "Performing Trivy file scan before building the image..."
       # 1. Install Trivy for vulnerability scanning
@@ -97,8 +101,8 @@ phases:
       - echo "Running SonarQube analysis..."
       - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=projects/Swiggy_clone -Dsonar.host.url=http://3.110.187.226:9000 -Dsonar.login=$SONAR_TOKEN
       
-      # 4. SES Email Notification (Restored to madithati123@gmail.com and ap-south-1)
-      # - aws ses send-email --from "noreply@gmail.com" --to "abisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "ap-south-1"
+      # 4. SES Email Notification (COMMENTED OUT)
+      # - aws ses send-email --from "no-reply@gmail.com" --to "abisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "ap-south-1"
 
 # --- ARTIFACTS ---
 artifacts:

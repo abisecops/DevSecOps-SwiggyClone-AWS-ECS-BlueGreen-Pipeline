@@ -11,23 +11,17 @@ env:
 
 phases:
   install:
-    # --- FIX 1: Removed runtime-versions ---
-    # The COMMAND_EXECUTION_ERROR during install suggests the specified runtime (java: corretto17) 
-    # is not available on the CodeBuild image/architecture being used.
-    # We will install Java manually in the pre_build phase to ensure compatibility.
-    # runtime-versions:
-    #   java: corretto17 # REMOVED
+    # --- FIX: Moved manual Java install here to satisfy YAML validator ---
+    commands:
+      - echo "Installing Java Corretto 17 manually..."
+      # Install the Java Runtime Environment (JRE) for SonarQube Scanner.
+      - yum update -y
+      - yum install -y java-17-amazon-corretto-jre
 
   # --- PRE-BUILD PHASE: SECURITY TOOL & SCANNER SETUP (SonarQube Active) ---
   pre_build:
     commands:
       - echo "Installing dependencies..."
-
-      # --- FIX 2: Manually install Corretto 17 ---
-      # Assuming an Amazon Linux 2/3 base image (common in CodeBuild). This installs the required Java for SonarQube.
-      - echo "Manually installing Corretto 17 to avoid runtime error..."
-      - yum update -y
-      - yum install -y java-17-amazon-corretto-devel
 
       - echo "Performing Trivy file scan before building the image..."
       # 1. Install Trivy for vulnerability scanning
@@ -104,7 +98,7 @@ phases:
       - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=projects/Swiggy_clone -Dsonar.host.url=http://3.110.187.226:9000 -Dsonar.login=$SONAR_TOKEN
       
       # 4. SES Email Notification (Restored to madithati123@gmail.com and ap-south-1)
-      # - aws ses send-email --from "noreply@gmail.com" --to "abisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "ap-south-1"
+      - aws ses send-email --from "noreply@gmail.com" --to "abisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "ap-south-1"
 
 # --- ARTIFACTS ---
 artifacts:

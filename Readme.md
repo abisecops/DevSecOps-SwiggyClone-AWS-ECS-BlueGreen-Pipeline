@@ -1,6 +1,6 @@
 # DevSecOps-SwiggyClone-AWS-ECS-BlueGreen-Pipeline
 - DevSecOps CI/CD for Swiggy-Clone. Implements automated Blue-Green Deployment on AWS ECS using CodePipeline and CodeDeploy.
-  <img width="802" height="348" alt="image" src="https://github.com/user-attachments/assets/33019516-ca31-4d1c-9875-d36fb77ef370" />
+<img width="802" height="348" alt="image" src="https://github.com/user-attachments/assets/8530cb53-64c3-4472-b3c6-35706848cf35" />
 
 ## Introduction
 - The foundation of modern development is speed and reliability. By adopting DevSecOps and the Blue-Green Deployment strategy on AWS ECS, we can achieve both, ensuring our Swiggy-Clone application updates are fast, secure, and downtime-free.

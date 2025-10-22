@@ -72,8 +72,8 @@ phases:
       - echo "Running SonarQube analysis result with explicit token and host URL."
       - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://3.110.187.226:9000 -Dsonar.login=$SONAR_TOKEN
       
-      # 4. SES Email Notification (Condensed to one line to avoid multi-line YAML parsing issues)
-      - aws ses send-email --from "noreply@gmail.com" --to "pingabisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "us-east-1"
+      #  4. SES Email Notification (Condensed to one line to avoid multi-line YAML parsing issues)
+      # - aws ses send-email --from "noreply@gmail.com" --to "pingabisec@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "us-east-1"
 
 # --- ARTIFACTS ---
 artifacts:

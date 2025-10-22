@@ -195,12 +195,27 @@ This is how **CodeDeploy** executes the zero-downtime switch:
 
 1.  **Navigate** to **IAM** $\rightarrow$ **Roles**.
 2.  Find and click on the **Service Role** created by CodeBuild (e.g., `codebuild-<project-name>-service-role`).
+<img width="1906" height="902" alt="image" src="https://github.com/user-attachments/assets/0cd0e4db-1930-4497-808b-5ff4a41206fa" />
+
 3.  **Attach Policies** to grant necessary permissions:
       * **`AmazonSSMFullAccess`** (To access the Sonar/Docker parameters in Systems Manager).
+        <img width="1808" height="559" alt="image" src="https://github.com/user-attachments/assets/06b8f0cb-a5ec-45db-a849-cffae0e36fe8" />
+
       * **`AWSS3FullAccess`** (To upload build artifacts to S3).
+<img width="1617" height="574" alt="image" src="https://github.com/user-attachments/assets/a58ed775-f238-43b0-a168-e1159e2d9b08" />
 
 ### 3.3 Start Build
 
 1.  In the CodeBuild project, click **“Start build”**.
+<img width="1918" height="758" alt="image" src="https://github.com/user-attachments/assets/59eba47c-2f1e-4a38-8026-d50bbe644984" />
 
 > **Note:** The `buildspec.yaml` file must be updated with your **Sonar URL** and **Project Key** before starting the build.
+
+## Error Handling
+- Sorry guys, I got an error:
+<img width="1916" height="790" alt="image" src="https://github.com/user-attachments/assets/00aceb97-b2bb-4c3f-b4e8-3f59dd2ed7ea" />
+
+Buildspec filename is wrong here from our repo, did you notice?
+Let's change now and build again.
+
+```project/swiggy-clone/buildspec.yaml``` to ```projects/Swiggy_clone/buildspec.yaml```
